@@ -1,0 +1,38 @@
+name: Sync JotForm to Google Sheet
+
+on:
+  schedule:
+    # Runs every day at 06:00 UTC. Edit this cron expression to change
+    # frequency, e.g. "0 */6 * * *" for every 6 hours.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+    # ^ This makes the workflow triggerable on demand — either by clicking
+    # "Run workflow" in the GitHub Actions tab, or by an API call (which is
+    # what the Google Sheets button will do).
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write service account credentials to file
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > service_account.json
+
+      - name: Run sync
+        env:
+          JOTFORM_API_KEY: ${{ secrets.JOTFORM_API_KEY }}
+          JOTFORM_FORM_ID: ${{ secrets.JOTFORM_FORM_ID }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_CREDS_FILE: service_account.json
+          SHEET_NAME: Submissions
+        run: python sync_jotform_to_sheet.py
